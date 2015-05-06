@@ -5,3 +5,26 @@ time (distance) dfs需要嗎？
 名字記得要打上去 gn4的4
 
 大型case要如何檢查@@?
+
+global variable記得要reset
+要檢查初始化後有些參數會不會被設錯(例如color被設成-1)
+
+object要delete乾淨
+
+例外處理
+
+修復time找不到的問題
+cout 改成 fout
+run checker for 正確性
+確定大型測資跑得完
+
+連續輸入bash指令看會不會錯誤(尤其是連read兩次graph這種)
+run defalut bat file 各種指令
+人工檢查output format
+畫圖出來看一不一樣吧
+
+
+※※※※※※CRLF LF 造成的檔名不一樣問題
+
+
+如何檢查大型測資的正確性呢？？？？？dfs bfs color

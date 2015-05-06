@@ -11,10 +11,17 @@
 #include <fstream>
 #include <stdio.h>
 #include "../lib/tm_usage.h"
+#include <fstream>
+#include <queue>
+#include <algorithm>
+#include <sstream>
 using namespace std;
 using namespace CommonNs;
+CommonNs::TmUsage tmusg;
+CommonNs::TmStat stat;
 char G[30];
 Graph graph("");
+char filename[200];
 int verticeNum = 0;
 int edgeNum = 0;
 int colorNum = 0;
@@ -53,44 +60,68 @@ bool TestCmd::exec(int argc, char **argv) {
     return true;
 }
 
-ReadCmd::Cmd(const char * const name) : Cmd(name) {
+ReadCmd::ReadCmd(const char * const name) : Cmd(name) {
     optMgr_.setShortDes("read_graph");    // NAME
     optMgr_.setDes("read the graph in dot format");     // DESCRIPTION
-    optMgr_.regArg(new Arg(Arg::OPT, "target directories", "DIRECTORY"));   // ARGUMENT
+    optMgr_.regArg(new Arg(Arg::REQ, "target directories", "DIRECTORY"));   // ARGUMENT
 }
 
 ReadCmd::~ReadCmd() {}
 
 bool ReadCmd::exec(int argc, char **argv) {
+
+    tmusg.periodStart();
+
     optMgr_.parse(argc, argv);
 
-    if (argc == 1) {
-        cout<<"no argument"<<endl;
-        return false;
+    if (optMgr_.getNParsedArg())
+    {
+        strcpy(argv[1],optMgr_.getParsedArg(0));
     }
-    if (argc > 2) {
-        cout<<"too many argument"<<endl;
+    else
+    {
+        cout<<"no argument"<<endl;
         return false;
     }
 
  //   argv[1] = "gn10.dot";
- //   argv[2] = "gn10_dfs.dot"; 
+ //   argv[2] = "gn10_dfs.dot";
+
     char buffer[200];
+    memset(filename, '\0', sizeof(buffer));
+    strcpy(filename,argv[1]);
     fstream fin(argv[1]);
     fin.getline(buffer,200);
-    
+
     int v1,v2;
     string a,b,name,junk;
     fin >> junk >> name >> junk;
-
 //  Graph graph(name);
     graph.name = name;
+
+    stringstream ss;
+//    ss << numberStr;
+//    ss >> num;
+
     while (fin >> a >> junk >> b)
     {
-        v1 = stoi(a.substr(1));
-        v2 = stoi(b.substr(1));
+//        int v1 = stoi(a.substr(1));
+//        int v2 = stoi(b.substr(1));
+        ss << a.substr(1);
+        ss >> v1;
+        ss.str("");
+        ss.clear();
+
+        ss << b.substr(1,b.length()-2);
+        ss >> v2;
+        ss.str("");
+        ss.clear();
+
+//        cout<<v1<<"   "<<v2<<endl;
         graph.addEdge(v1,v2);
     }
+
+    tmusg.getPeriodUsage(stat);
 
     return true;
 }
@@ -111,16 +142,19 @@ DfsCmd::DfsCmd(const char * const name) : Cmd(name) {
 DfsCmd::~DfsCmd() {}
 
 bool DfsCmd::exec(int argc, char **argv) {
+
+    tmusg.periodStart();
+
     optMgr_.parse(argc, argv);
 
     if (optMgr_.getParsedOpt("s")) {
-        argv[2] = optMgr_.getParsedOpt("s");
+        argv[2] = optMgr_.getParsedValue("s");
     }
     else
         return false;
 
     if (optMgr_.getParsedOpt("o")) {
-        argv[4] = optMgr_.getParsedOpt("o");
+        argv[4] = optMgr_.getParsedValue("o");
     }
     else
         return false;
@@ -134,8 +168,8 @@ bool DfsCmd::exec(int argc, char **argv) {
     fstream fout;
     fout.open(argv[4],ios::out);
 
-    cout<<"// DFS tree produced by graphlab"<<endl;
-    cout<<"graph "<<graph.name<<"_dfs {"<<endl;
+    fout<<"// DFS tree produced by graphlab"<<endl;
+    fout<<"graph "<<graph.name<<"_dfs {"<<endl;
 
     graph.sortEdgesOfNode();
 
@@ -143,20 +177,30 @@ bool DfsCmd::exec(int argc, char **argv) {
     // fully connected graph
     verticeNum++;
     Node* node = graph.getNodeById(src);
-    dfs_visit(node);
+    dfs_visit(node,fout);
     
 
-    cout<<"}"<<endl;
-    cout<<"// vertices = "<<verticeNum<<endl;
-    cout<<"// edges = "<<edgeNum<<endl;
-    cout<<"// runtime = "<<0<<" sec"<<endl;
-    cout<<"// memory = "<<11<<" MB"<<endl;
+    fout<<"}"<<endl;
+    fout<<"// vertices = "<<verticeNum<<endl;
+    fout<<"// edges = "<<edgeNum<<endl;
+    fout<<"// runtime = "<< (stat.uTime + stat.sTime) / 1000.0 <<" ms"<<endl;
+    fout<<"// memory = "<< stat.vmPeak / 1000.0 <<" MB"<<endl;
 
+    verticeNum = 0;
+    edgeNum = 0;
+    colorNum = 0;
+    graph.init();
+    for (size_t i = 0; i < graph.nodes.size(); ++i)
+    {
+        graph.nodes[i]->color = 0;
+    }
+
+    tmusg.getPeriodUsage(stat);
 
     return true;
 }
 
-bool DfsCmd::dfs_visit(Node* u) {
+bool DfsCmd::dfs_visit(Node* u, fstream& fout) {
     u->traveled = true;
     for (size_t i = 0; i < u->edge.size(); i++)
     {
@@ -164,10 +208,10 @@ bool DfsCmd::dfs_visit(Node* u) {
         if(v->traveled==false)
         {
             v->prev = u;
-            cout<<"v"<<u->id<<" -- "<<"v"<<v->id<<";"<<endl;
+            fout<<"v"<<u->id<<" -- "<<"v"<<v->id<<";"<<endl;
             verticeNum++;
             edgeNum++;
-            dfs_visit(v);
+            dfs_visit(v,fout);
         }
     }
 //  u->traveled = black;
@@ -189,22 +233,77 @@ BfsCmd::BfsCmd(const char * const name) : Cmd(name) {
 BfsCmd::~BfsCmd() {}
 
 bool BfsCmd::exec(int argc, char **argv) {
+
+    tmusg.periodStart();
+
     optMgr_.parse(argc, argv);
 
     if (optMgr_.getParsedOpt("s")) {
-        argv[2] = optMgr_.getParsedOpt("s");
+        argv[2] = optMgr_.getParsedValue("s");
     }
     else
         return false;
 
     if (optMgr_.getParsedOpt("o")) {
-        argv[4] = optMgr_.getParsedOpt("o");
+        argv[4] = optMgr_.getParsedValue("o");
     }
     else
         return false;
 
+    int src = atoi(&argv[2][1]);
+    fstream fout;
+    fout.open(argv[4],ios::out);
+
+    fout<<"// BFS tree produced by graphlab"<<endl;
+    fout<<"graph "<<graph.name<<"_bfs {"<<endl;
 
 
+    graph.sortEdgesOfNode();
+
+    // fully connected graph
+    verticeNum++;
+    Node* s = graph.getNodeById(src);
+    s->traveled = true;
+    s->d = 0;
+    queue<Node*> Q;
+    Q.push(s);
+
+    while (!Q.empty())
+    {
+        Node* u = Q.front();
+        Q.pop();
+        for (size_t i = 0; i < u->edge.size(); i++)
+        {
+            Node* v = u->edge[i]->getNeighbor(u);
+            if (v->traveled==false)
+            {
+                v->traveled=true;
+                v->d++;
+                v->prev = u;
+                fout<<"v"<<u->id<<" -- "<<"v"<<v->id<<";"<<endl;
+                verticeNum++;
+                edgeNum++;
+                Q.push(v);
+            }
+        }
+    }
+
+    fout<<"}"<<endl;
+    fout<<"// vertices = "<<verticeNum<<endl;
+    fout<<"// edges = "<<edgeNum<<endl;
+    fout<<"// runtime = "<< (stat.uTime + stat.sTime) / 1000.0 <<" ms"<<endl;
+    fout<<"// memory = "<< stat.vmPeak / 1000.0 <<" MB"<<endl;
+
+    verticeNum = 0;
+    edgeNum = 0;
+    colorNum = 0;
+    graph.init();
+    for (size_t i = 0; i < graph.nodes.size(); ++i)
+    {
+        graph.nodes[i]->color = 0;
+    }
+
+    tmusg.getPeriodUsage(stat);
 
     return true;
 }
@@ -225,17 +324,28 @@ ColorCmd::ColorCmd(const char * const name) : Cmd(name) {
 ColorCmd::~ColorCmd() {}
 
 bool ColorCmd::exec(int argc, char **argv) {
+
+    tmusg.periodStart();
+
     optMgr_.parse(argc, argv);
 
-    if (optMgr_.getParsedOpt("m")!="greedy") {
-        return false;
+    if (optMgr_.getParsedOpt("m")) {
+        if (strcmp(optMgr_.getParsedValue("m"),"greedy")!=0)
+        {
+            cout<<optMgr_.getParsedValue("m")<<endl;
+            cout<<"not greedy"<<endl;
+            return false;
+        }
     }
 
     if (optMgr_.getParsedOpt("o")) {
-        argv[4] = optMgr_.getParsedOpt("o");
+        argv[4] = optMgr_.getParsedValue("o");
     }
     else
+    {
+        cout<<"no -o arg"<<endl;
         return false;
+    }
 
 //    argv[1] = "gn10.dot";
 //    argv[4] = "gn10_color.dot";
@@ -243,12 +353,11 @@ bool ColorCmd::exec(int argc, char **argv) {
     fstream fout;
     fout.open(argv[4],ios::out);
 
-    cout<<"// Coloring produced by graphlab"<<endl;
-    cout<<"graph "<<graph.name<<"_color {"<<endl;
+    fout<<"// Coloring produced by graphlab"<<endl;
+    fout<<"graph "<<graph.name<<"_color {"<<endl;
 
     char buffer[200];
-    char* pch;
-    fstream fin(argv[1]);
+    fstream fin(filename);
     fin.getline(buffer,200);
     fin.getline(buffer,200);
     while (true)
@@ -258,7 +367,7 @@ bool ColorCmd::exec(int argc, char **argv) {
         if(strcmp ("}",buffer)==0)
             break;
         else
-            cout<<buffer<<endl;
+            fout<<buffer<<endl;
     }
 
     graph.sortNodesByDegree();
@@ -292,16 +401,27 @@ bool ColorCmd::exec(int argc, char **argv) {
 
     for (size_t i = 0; i < graph.nodes.size(); i++)
     {
-        cout<<"v"<<i<<" [label = \"v"<<i<<"_color"<<graph.nodes[i]->color<<"\"];"<<endl;
+        fout<<"v"<<i<<" [label = \"v"<<i<<"_color"<<graph.nodes[i]->color<<"\"];"<<endl;
     }
     
 
-    cout<<"}"<<endl;
-    cout<<"// vertices = "<<verticeNum<<endl;
-    cout<<"// edges = "<<edgeNum/2<<endl;
-    cout<<"// number_of_colors = "<<colorNum<<endl;
-    cout<<"// runtime = "<<0<<" sec"<<endl;
-    cout<<"// memory = "<<11<<" MB"<<endl;
+    fout<<"}"<<endl;
+    fout<<"// vertices = "<<verticeNum<<endl;
+    fout<<"// edges = "<<edgeNum/2<<endl;
+    fout<<"// number_of_colors = "<<colorNum<<endl;
+    fout<<"// runtime = "<< (stat.uTime + stat.sTime) / 1000.0 <<" ms"<<endl;
+    fout<<"// memory = "<< stat.vmPeak / 1000.0 <<" MB"<<endl;
+
+    verticeNum = 0;
+    edgeNum = 0;
+    colorNum = 0;
+    graph.init();
+    for (size_t i = 0; i < graph.nodes.size(); ++i)
+    {
+        graph.nodes[i]->color = 0;
+    }
+
+    tmusg.getPeriodUsage(stat);
 
     return true;
 }

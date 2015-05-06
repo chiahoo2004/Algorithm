@@ -110,10 +110,10 @@ void initCmds(CmdMgr *mgr) {
 
   // add your command here
   Cmd *testCmd   = new TestCmd("test");
-  Cmd *readCmd   = new ReadCmd("read");
-  Cmd *dfsCmd   = new DfsCmd("dfs");
-  Cmd *bfsCmd   = new BfsCmd("bfs");
-  Cmd *colorCmd   = new ColorCmd("color");
+  Cmd *readCmd   = new ReadCmd("read_graph");
+  Cmd *dfsCmd   = new DfsCmd("write_tree_dfs");
+  Cmd *bfsCmd   = new BfsCmd("write_tree_bfs");
+  Cmd *colorCmd   = new ColorCmd("color_graph");
   mgr->regCmd(testCmd);
   mgr->regCmd(readCmd);
   mgr->regCmd(dfsCmd);
