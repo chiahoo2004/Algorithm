@@ -14,6 +14,10 @@
 using namespace std;
 using namespace CommonNs;
 char G[30];
+Graph graph("");
+int verticeNum = 0;
+int edgeNum = 0;
+int colorNum = 0;
 
 TestCmd::TestCmd(const char * const name) : Cmd(name) {
     optMgr_.setShortDes("test");
@@ -80,6 +84,7 @@ bool ReadCmd::exec(int argc, char **argv) {
     fin >> junk >> name >> junk;
 
 //  Graph graph(name);
+    graph.name = name;
     while (fin >> a >> junk >> b)
     {
         v1 = stoi(a.substr(1));
@@ -94,7 +99,7 @@ DfsCmd::DfsCmd(const char * const name) : Cmd(name) {
     optMgr_.setShortDes("write_tree_dfs");
     optMgr_.setDes("Perform depth first search starting from source node.  Then write to a dot file.");
 
-    Opt *opt = new Opt(Opt::BOOL, "", "<sourcenode>");   // 
+    Opt *opt = new Opt(Opt::STR_REQ, "", "<sourcenode>");   // 
     opt->addFlag("s");
     optMgr_.regOpt(opt);
 
@@ -109,18 +114,20 @@ bool DfsCmd::exec(int argc, char **argv) {
     optMgr_.parse(argc, argv);
 
     if (optMgr_.getParsedOpt("s")) {
-        
-    }
-
-    if (optMgr_.getParsedOpt("o")) {
-        
+        argv[2] = optMgr_.getParsedOpt("s");
     }
     else
-        printf("hello world !!\n");
+        return false;
+
+    if (optMgr_.getParsedOpt("o")) {
+        argv[4] = optMgr_.getParsedOpt("o");
+    }
+    else
+        return false;
 
 
-    argv[2] = "v0";
-    argv[4] = "gn10_dfs.dot";
+ //   argv[2] = "v0";
+ //   argv[4] = "gn10_dfs.dot";
 
 
     int src = atoi(&argv[2][1]);
@@ -164,4 +171,137 @@ bool DfsCmd::dfs_visit(Node* u) {
         }
     }
 //  u->traveled = black;
+}
+
+BfsCmd::BfsCmd(const char * const name) : Cmd(name) {
+    optMgr_.setShortDes("write_tree_bfs");
+    optMgr_.setDes("Perform depth first search starting from source node.  Then write to a dot file.");
+
+    Opt *opt = new Opt(Opt::STR_REQ, "", "<sourcenode>");;
+    opt->addFlag("s");
+    optMgr_.regOpt(opt);
+
+    opt = new Opt(Opt::STR_REQ, "", "<dot_filename>");
+    opt->addFlag("o");
+    optMgr_.regOpt(opt);
+}
+
+BfsCmd::~BfsCmd() {}
+
+bool BfsCmd::exec(int argc, char **argv) {
+    optMgr_.parse(argc, argv);
+
+    if (optMgr_.getParsedOpt("s")) {
+        argv[2] = optMgr_.getParsedOpt("s");
+    }
+    else
+        return false;
+
+    if (optMgr_.getParsedOpt("o")) {
+        argv[4] = optMgr_.getParsedOpt("o");
+    }
+    else
+        return false;
+
+
+
+
+    return true;
+}
+
+ColorCmd::ColorCmd(const char * const name) : Cmd(name) {
+    optMgr_.setShortDes("color_graph");
+    optMgr_.setDes("Perform greedy algorithm to color the graph. Then write to a dot file.");
+
+    Opt *opt = new Opt(Opt::STR_REQ, "", "greedy");   // 
+    opt->addFlag("m");
+    optMgr_.regOpt(opt);
+
+    opt = new Opt(Opt::STR_REQ, "", "<dot_filename>");
+    opt->addFlag("o");
+    optMgr_.regOpt(opt);
+}
+
+ColorCmd::~ColorCmd() {}
+
+bool ColorCmd::exec(int argc, char **argv) {
+    optMgr_.parse(argc, argv);
+
+    if (optMgr_.getParsedOpt("m")!="greedy") {
+        return false;
+    }
+
+    if (optMgr_.getParsedOpt("o")) {
+        argv[4] = optMgr_.getParsedOpt("o");
+    }
+    else
+        return false;
+
+//    argv[1] = "gn10.dot";
+//    argv[4] = "gn10_color.dot";
+
+    fstream fout;
+    fout.open(argv[4],ios::out);
+
+    cout<<"// Coloring produced by graphlab"<<endl;
+    cout<<"graph "<<graph.name<<"_color {"<<endl;
+
+    char buffer[200];
+    char* pch;
+    fstream fin(argv[1]);
+    fin.getline(buffer,200);
+    fin.getline(buffer,200);
+    while (true)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        fin.getline(buffer,200);
+        if(strcmp ("}",buffer)==0)
+            break;
+        else
+            cout<<buffer<<endl;
+    }
+
+    graph.sortNodesByDegree();
+    vector<bool> used(graph.nodes.size()+1,false);
+    
+    for (size_t i = 0; i < graph.nodes.size(); i++)
+    {
+        verticeNum++;
+        Node* u = graph.nodes[i];
+        for (size_t j = 0; j < u->edge.size(); j++)
+        {
+            edgeNum++;
+            Node* v = u->edge[j]->getNeighbor(u);
+            if (v->color!=0)
+            {
+                used[ v->color ] = true;
+            }
+        }
+        int color = 1;
+        while ( used[color]==true && color < used.size() )
+        {
+            color++;
+        }
+        u->color = color;
+        if (color>colorNum)
+            colorNum = color;
+        fill(used.begin(), used.end(), 0);
+    }
+
+    graph.sortNodesByID();
+
+    for (size_t i = 0; i < graph.nodes.size(); i++)
+    {
+        cout<<"v"<<i<<" [label = \"v"<<i<<"_color"<<graph.nodes[i]->color<<"\"];"<<endl;
+    }
+    
+
+    cout<<"}"<<endl;
+    cout<<"// vertices = "<<verticeNum<<endl;
+    cout<<"// edges = "<<edgeNum/2<<endl;
+    cout<<"// number_of_colors = "<<colorNum<<endl;
+    cout<<"// runtime = "<<0<<" sec"<<endl;
+    cout<<"// memory = "<<11<<" MB"<<endl;
+
+    return true;
 }

@@ -110,7 +110,15 @@ void initCmds(CmdMgr *mgr) {
 
   // add your command here
   Cmd *testCmd   = new TestCmd("test");
+  Cmd *readCmd   = new ReadCmd("read");
+  Cmd *dfsCmd   = new DfsCmd("dfs");
+  Cmd *bfsCmd   = new BfsCmd("bfs");
+  Cmd *colorCmd   = new ColorCmd("color");
   mgr->regCmd(testCmd);
+  mgr->regCmd(readCmd);
+  mgr->regCmd(dfsCmd);
+  mgr->regCmd(bfsCmd);
+  mgr->regCmd(colorCmd);
 
 
 
