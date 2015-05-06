@@ -1,0 +1,10 @@
+// DFS tree produced by graphlab
+graph gn4_dfs {
+v0 -- v1;
+v1 -- v2;
+v2 -- v3;
+}
+// vertices = 4
+// edges = 3
+// runtime = 0 sec
+// memory = 11 MB

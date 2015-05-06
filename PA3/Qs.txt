@@ -1,0 +1,7 @@
+﻿why paint black 有需要嗎？
+time (distance) dfs需要嗎？
+
+檢查所有函示樹否都有用過
+名字記得要打上去 gn4的4
+
+大型case要如何檢查@@?

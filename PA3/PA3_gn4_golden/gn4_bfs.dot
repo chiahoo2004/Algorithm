@@ -1,0 +1,10 @@
+// BFS tree produced by graphlab
+graph gn4_bfs {
+v0 -- v1;
+v0 -- v3;
+v1 -- v2;
+}
+// vertices = 4
+// edges = 3
+// runtime = 0 sec
+// memory = 11 MB

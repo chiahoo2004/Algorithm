@@ -1,0 +1,17 @@
+// Coloring produced by graphlab
+graph gn4_color {
+v0 -- v1;
+v1 -- v2;
+v0 -- v3;
+v2 -- v3;
+v1 -- v3;
+v0 [label = "v0_color3"];
+v1 [label = "v1_color1"];
+v2 [label = "v2_color3"];
+v3 [label = "v3_color2"];
+}
+// vertices = 4
+// edges = 5
+// number_of_colors = 3
+// runtime = 0 sec
+// memory = 11 MB
