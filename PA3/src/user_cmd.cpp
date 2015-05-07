@@ -87,6 +87,16 @@ bool ReadCmd::exec(int argc, char **argv) {
  //   argv[1] = "gn10.dot";
  //   argv[2] = "gn10_dfs.dot";
 
+    verticeNum = 0;
+    edgeNum = 0;
+    colorNum = 0;
+    graph.init();
+    for (size_t i = 0; i < graph.nodes.size(); ++i)
+    {
+        graph.nodes[i]->color = 0;
+    }
+
+
     char buffer[200];
     memset(filename, '\0', sizeof(buffer));
     strcpy(filename,argv[1]);
